@@ -1,0 +1,264 @@
+// ------------------------------------------------------------------------START OF HEAD BLOCK------------------------------------------------------------------------------------
+/* 
+
+   Author : Devneet Mohanty
+   
+   Block Description : This sample block has been created in order to iterate via email and perform the required operations.
+   
+   Date Of Creation : 01-08-2021
+   
+   Input Parameter : 
+
+        - dictConfig : The dictionary variable consisting of all configuration parameters.
+        - arrReadEmailsBlockReturn : The array results from the prior block.
+     
+   Output Parameter :
+
+        - sErrorMessage : The error message variable returned in case of any error in the block.
+
+*/
+// ------------------------------------------------------------------------END OF HEAD BLOCK--------------------------------------------------------------------------------------
+
+Try
+
+    Dim iRet1 = ""
+    Dim iRet3 = ""
+    Dim iRet5 = ""
+    Dim dictConfig = self.INPUT[0][0]
+    Dim totalEmails = self.INPUT[1][0]
+    Dim arrMailDetails = self.INPUT[1][2]
+    Dim dictCurrentEmailDetail = {}
+    Dim currentEmailTranslatedBody = ""
+    Dim TranslatedText = ""
+    Dim currentEmailTranslatedSubject = ""
+    Dim ticketCategory = ""
+    Dim incidentShortText = ""
+    Dim incidentComment = ""
+    Dim serviceNowInstanceName = dictConfig["sServiceNowInstanceName"]
+    Dim serviceNowUserName = dictConfig["sServiceNowUserName"]
+    Dim serviceNowPassword = dictConfig["sServiceNowPassword"]
+    Dim bLoginPageExists = False
+
+    
+    // Log Invokation Of Code :
+    Logger.logToFile(dictConfig["sLogFolderPath"],"Auto Request Assigner Process","Perform Ticket Assign Operation","INFO","The block has been invoked.")
+
+     If totalEmails = 0
+
+        Throw "No emails found in the given mail folder."
+
+    End If
+
+    // Log Retrieving Browser Running Status :
+    Logger.logToFile(dictConfig["sLogFolderPath"],"Auto Request Assigner Process","Perform Ticket Assign Operation","DEBUG","Retrieving application running status for : ."& dictConfig["sBrowserProcessName"])
+
+    // Get Application Running Status Of Browser :
+    dim bRet = ""
+    dim arrayRet = ""
+    dim bBrowserAppStatus = App.GetStatus(dictConfig["sBrowserProcessName"])
+
+    If bBrowserAppStatus
+
+        // Log Killing Browser Application, Since Already Running :
+        Logger.logToFile(dictConfig["sLogFolderPath"],"Auto Request Assigner Process","Perform Ticket Assign Operation","DEBUG","Killing browser application since it is running already.")
+
+        App.Kill(dictConfig["sBrowserProcessName"])
+        Delay(dictConfig["nTimeoutM"])
+
+    End If
+
+    // Log Launching Sales Force Web Site :
+    Logger.logToFile(dictConfig["sLogFolderPath"],"Auto Request Assigner Process","Perform Ticket Assign Operation","DEBUG","Launching salesforce website.")
+
+    objWebBrowser = WebBrowser.Create("uibotbrowser",dictConfig["sWebsiteURL"],dictConfig["nTimeoutL"],{"bContinueOnError":false,"iDelayAfter":dictConfig["nTimeoutM"],"iDelayBefore":dictConfig["nTimeoutM"],"sBrowserPath":dictConfig["sBrowserFilePath"],"sStartArgs":""})
+   
+    // Log Entering The Credentials :
+    Logger.logToFile(dictConfig["sLogFolderPath"],"Auto Request Assigner Process","Perform Ticket Assign Operation","TRACE","Entering the credentials for salesforce website.")
+
+    #icon("@res:ttmvn10k-hrnn-ve6a-bpu7-mvts3qm8ndru.png")
+    UiElement.SetValue({"wnd":[{"cls":"Chrome_WidgetWin_*","title":"*","app":"uibotBrowser"},{"cls":"Chrome_RenderWidgetHostHWND","title":"Chrome Legacy Window"}],"html":{"tagName":"INPUT","attrMap":{"id":"username","tag":"INPUT"},"index":0}},dictConfig["sSalesforceUserName"],{"bContinueOnError":false,"iDelayAfter":dictConfig["nTimeoutS"],"iDelayBefore":dictConfig["nTimeoutS"]})
+
+    #icon("@res:mt28g7e8-g3q5-tkln-ckip-t3istsv2ack2.png")
+    UiElement.SetValue({"wnd":[{"cls":"Chrome_WidgetWin_*","title":"*","app":"uibotBrowser"},{"cls":"Chrome_RenderWidgetHostHWND","title":"Chrome Legacy Window"}],"html":{"tagName":"INPUT","attrMap":{"id":"password","tag":"INPUT"},"index":0}},dictConfig["sSalesforcePassword"],{"bContinueOnError":false,"iDelayAfter":dictConfig["nTimeoutS"],"iDelayBefore":dictConfig["nTimeoutS"]})
+
+    #icon("@res:2anfd248-gsu1-fccp-b02h-1l8goa7ra20f.png")
+    Mouse.Action({"wnd":[{"cls":"Chrome_WidgetWin_*","title":"*","app":"uibotBrowser"},{"cls":"Chrome_RenderWidgetHostHWND","title":"Chrome Legacy Window"}],"html":{"tagName":"INPUT","attrMap":{"id":"Login","tag":"INPUT"},"index":0}},"left","click",dictConfig["nTimeoutM"],{"bContinueOnError":false,"iDelayAfter":dictConfig["nTimeoutS"],"iDelayBefore":dictConfig[nTimeoutS],"bSetForeground":true,"sCursorPosition":"Center","iCursorOffsetX":0,"iCursorOffsetY":0,"sKeyModifiers":[],"sSimulate":"simulate"})
+    #icon("@res:h8t6oq8m-f1c2-ddvl-hjh3-8gkfouoomoeu.png")
+    UiElement.Wait({"wnd":[{"cls":"Chrome_WidgetWin_*","title":"*","app":"uibotBrowser"},{"cls":"Chrome_RenderWidgetHostHWND","title":"Chrome Legacy Window"}],"html":{"tagName":"A","attrMap":{"parentid":"01r6F000001EvXB_Tab","tag":"A"},"index":0}},"show",dictConfig["nTimeoutL"],{"bContinueOnError":false,"iDelayAfter":dictConfig["nTimeoutS"],"iDelayBefore":dictConfig["nTimeoutS"]})
+
+
+    
+    // Log Iterating Through Each Email :
+    Logger.logToFile(dictConfig["sLogFolderPath"],"Auto Request Assigner Process","Perform Ticket Assign Operation","DEBUG","Iterating through each email for performing auto ticket assignment.")
+
+    For Each currentEmailDetails In arrMailDetails
+        
+        dictCurrentEmailDetail = currentEmailDetails
+
+        // Log Translating Language For Current Email :
+        Logger.logToFile(dictConfig["sLogFolderPath"],"Auto Request Assigner Process","Perform Ticket Assign Operation","TRACE","Translating the email subject and body to the language code - " &  dictConfig["sTranslationLanguage"] & ".")
+
+        // Translate Message Body & Message Subject Into English:
+
+        DetectedLanguage = GoogleTranslatePlugin.detectLanguage(dictCurrentEmailDetail["BODY"])
+        TranslatedText = GoogleTranslatePlugin.translateText(dictCurrentEmailDetail["BODY"], dictConfig["sTranslationLanguage"])
+        currentEmailTranslatedBody = TranslatedText
+
+        // Log Email Body Got Translated Successfully :
+        Logger.logToFile(dictConfig["sLogFolderPath"],"Auto Request Assigner Process","Perform Ticket Assign Operation","TRACE","The email body got translated successfully.")
+
+        TranslatedText = GoogleTranslatePlugin.translateText(dictCurrentEmailDetail["SUBJECT"], dictConfig["sTranslationLanguage"])
+        currentEmailTranslatedSubject = TranslatedText
+
+        // Log Email Subject Got Translated Successfully :
+        Logger.logToFile(dictConfig["sLogFolderPath"],"Auto Request Assigner Process","Perform Ticket Assign Operation","TRACE","The email subject got translated successfully.")
+
+        // Log Classify The Type Of Incident Via Invoking ML Classifier Model:
+        Logger.logToFile(dictConfig["sLogFolderPath"],"Auto Request Assigner Process","Perform Ticket Assign Operation","DEBUG","Invoking the custom ML classifier model to generate the ticket category and confidence score through the given endpoint : " & dictConfig["sClassifierEndpoint"] & ".")
+        
+        DictPredictedValue = ClassifierEngine.getticketclassification(dictConfig["sClassifierEndpoint"], currentEmailTranslatedBody)
+
+        For Each key, value In DictPredictedValue
+            ticketCategory = key
+            confidence = value
+        Next
+
+        
+        // --------------------- For Testing ---------------------
+        //ticketCategory = "Desktop Hardware"
+        // --------------------- For Testing ---------------------
+
+
+        // Log Classifying Ticket Category :
+        Logger.logToFile(dictConfig["sLogFolderPath"],"Auto Request Assigner Process","Perform Ticket Assign Operation","TRACE","The ticket got classified for the category : " & ticketCategory & " with a confidence score of : " & CStr(confidence) & ".")
+        
+        // Log Creating Incident In Service Now :
+        Logger.logToFile(dictConfig["sLogFolderPath"],"Auto Request Assigner Process","Perform Ticket Assign Operation","TRACE","Creating the incident for the issue in Service Now application for the instance : " & dictConfig["sServiceNowInstanceName"] & ".")
+
+
+        incidentComment = CStr(dictConfig["sServiceNowComment"]) & "\\n\\n" & Replace(Replace(currentEmailTranslatedBody,"\n","\\n"),"\r","")
+        incidentShortText = "AutoTicketAssignerBot : " & currentEmailTranslatedSubject
+
+        // --------------------- For Testing ---------------------
+
+       IncidentNumber = ServiceNowPlugin.create_incident(serviceNowInstanceName, serviceNowUserName, serviceNowPassword, ticketCategory, incidentShortText,incidentComment)
+       //IncidentNumber = "INC000109"
+
+        // --------------------- For Testing ---------------------
+
+        // Log Incident Got Created In Service Now :
+        Logger.logToFile(dictConfig["sLogFolderPath"],"Auto Request Assigner Process","Perform Ticket Assign Operation","TRACE","Incident got created with the incident number as : " & IncidentNumber)
+        
+        // Log Navigating To Incident Data Tab :
+        Logger.logToFile(dictConfig["sLogFolderPath"],"Auto Request Assigner Process","Perform Ticket Assign Operation","TRACE","Navigating to Incident Data tab.")
+
+        #icon("@res:b0pt06ok-kkk2-gha9-6ckg-fv4pv6vqb42b.png")
+        Mouse.Action({"wnd":[{"cls":"Chrome_WidgetWin_*","title":"*","app":"uibotBrowser"},{"cls":"Chrome_RenderWidgetHostHWND","title":"Chrome Legacy Window"}],"html":{"tagName":"A","attrMap":{"parentid":"01r6F000001EvXB_Tab","tag":"A"},"index":0}},"left","click",dictConfig["nTimeoutM"],{"bContinueOnError":false,"iDelayAfter":dictConfig["nTimeoutS"],"iDelayBefore":dictConfig["nTimeoutS"],"bSetForeground":true,"sCursorPosition":"Center","iCursorOffsetX":0,"iCursorOffsetY":0,"sKeyModifiers":[],"sSimulate":"simulate"})
+
+        // Log Creating New Incident Data Item :
+        Logger.logToFile(dictConfig["sLogFolderPath"],"Auto Request Assigner Process","Perform Ticket Assign Operation","TRACE","Creating new incident data item in Salesforce.")
+
+        #icon("@res:ltrat20v-q7r2-8n3k-fu62-to0lj37i61bc.png")
+        UiElement.Wait({"wnd":[{"cls":"Chrome_WidgetWin_*","title":"*","app":"uibotBrowser"},{"cls":"Chrome_RenderWidgetHostHWND","title":"Chrome Legacy Window"}],"html":{"tagName":"INPUT","attrMap":{"name":"new","tag":"INPUT"},"index":0}},"show",dictConfig["nTimeoutL"],{"bContinueOnError":false,"iDelayAfter":dictConfig["nTimeoutS"],"iDelayBefore":dictConfig["nTimeoutS"]})
+        
+        #icon("@res:6bdaqv7u-1uf7-6fc6-edjl-c4ipoqdj8o66.png")
+        Mouse.Action({"wnd":[{"cls":"Chrome_WidgetWin_*","title":"*","app":"uibotBrowser"},{"cls":"Chrome_RenderWidgetHostHWND","title":"Chrome Legacy Window"}],"html":{"tagName":"INPUT","attrMap":{"name":"new","tag":"INPUT"},"index":0}},"left","click",dictConfig["nTimeoutM"],{"bContinueOnError":false,"iDelayAfter":dictConfig["nTimeoutS"],"iDelayBefore":dictConfig["nTimeoutS"],"bSetForeground":true,"sCursorPosition":"Center","iCursorOffsetX":0,"iCursorOffsetY":0,"sKeyModifiers":[],"sSimulate":"simulate"})
+
+        #icon("@res:2ec2et84-5qdm-7pdl-69ob-d6f9knb2llin.png")
+        UiElement.Wait({"wnd":[{"cls":"Chrome_WidgetWin_*","title":"*","app":"uibotBrowser"},{"cls":"Chrome_RenderWidgetHostHWND","title":"Chrome Legacy Window"}],"html":{"tagName":"H2","attrMap":{"parentid":"ep","tag":"H2"},"index":0}},"show",dictConfig["nTimeoutL"],{"bContinueOnError":false,"iDelayAfter":dictConfig["nTimeoutS"],"iDelayBefore":dictConfig["nTimeoutS"]})
+        
+        #icon("@res:7ln121ut-ur77-8up7-u5v1-qt02pj1h2uu8.png")
+        UiElement.SetValue({"wnd":[{"cls":"Chrome_WidgetWin_*","title":"*","app":"uibotBrowser"},{"cls":"Chrome_RenderWidgetHostHWND","title":"Chrome Legacy Window"}],"html":{"tagName":"INPUT","attrMap":{"id":"Name","tag":"INPUT"},"index":0}},IncidentNumber,{"bContinueOnError":false,"iDelayAfter":dictConfig["nTimeoutS"],"iDelayBefore":dictConfig["nTimeoutS"]})
+        
+        #icon("@res:7oqu9est-6ru6-l1bs-e6cd-7iv85svg9vp4.png")
+        UiElement.SetValue({"wnd":[{"cls":"Chrome_WidgetWin_*","title":"*","app":"uibotBrowser"},{"cls":"Chrome_RenderWidgetHostHWND","title":"Chrome Legacy Window"}],"html":{"tagName":"INPUT","attrMap":{"id":"00N6F00000Z1Av9","tag":"INPUT"},"index":0}},dictConfig["sItemUrgency"],{"bContinueOnError":false,"iDelayAfter":dictConfig["nTimeoutS"],"iDelayBefore":dictConfig["nTimeoutS"]})
+        
+        #icon("@res:ka2l0mhf-2452-mlsi-bpba-ib0idiv0orpf.png")
+        UiElement.SetValue({"wnd":[{"cls":"Chrome_WidgetWin_*","title":"*","app":"uibotBrowser"},{"cls":"Chrome_RenderWidgetHostHWND","title":"Chrome Legacy Window"}],"html":{"tagName":"TEXTAREA","attrMap":{"tag":"TEXTAREA"},"index":0}},incidentShortText,{"bContinueOnError":false,"iDelayAfter":dictConfig["nTimeoutS"],"iDelayBefore":dictConfig["nTimeoutS"]})
+        
+        #icon("@res:bk95e3j7-m05d-cc8q-af2c-qnjm0c0hn876.png")
+        UiElement.SetValue({"wnd":[{"cls":"Chrome_WidgetWin_*","title":"*","app":"uibotBrowser"},{"cls":"Chrome_RenderWidgetHostHWND","title":"Chrome Legacy Window"}],"html":{"tagName":"INPUT","attrMap":{"id":"00N6F00000Z1AvJ","tag":"INPUT"},"index":0}},dictConfig["sDepartmentName"],{"bContinueOnError":false,"iDelayAfter":dictConfig["nTimeoutS"],"iDelayBefore":dictConfig["nTimeoutS"]})
+        
+        #icon("@res:n7d5ntod-fl3k-6eoe-4lsb-nhbhknntfabf.png")
+        Mouse.Action({"wnd":[{"cls":"Chrome_WidgetWin_*","title":"*","app":"uibotBrowser"},{"cls":"Chrome_RenderWidgetHostHWND","title":"Chrome Legacy Window"}],"html":{"tagName":"INPUT","attrMap":{"name":"save","parentid":"bottomButtonRow","tag":"INPUT"},"index":0}},"left","click",dictConfig["nTimeoutM"],{"bContinueOnError":false,"iDelayAfter":dictConfig["nTimeoutS"],"iDelayBefore":dictConfig["nTimeoutS"],"bSetForeground":true,"sCursorPosition":"Center","iCursorOffsetX":0,"iCursorOffsetY":0,"sKeyModifiers":[],"sSimulate":"simulate"})
+        
+        #icon("@res:h8t6oq8m-f1c2-ddvl-hjh3-8gkfouoomoeu.png")
+        UiElement.Wait({"wnd":[{"cls":"Chrome_WidgetWin_*","title":"*","app":"uibotBrowser"},{"cls":"Chrome_RenderWidgetHostHWND","title":"Chrome Legacy Window"}],"html":{"tagName":"A","attrMap":{"parentid":"01r6F000001EvXB_Tab","tag":"A"},"index":0}},"show",dictConfig["nTimeoutL"],{"bContinueOnError":false,"iDelayAfter":dictConfig["nTimeoutS"],"iDelayBefore":dictConfig["nTimeoutS"]})
+
+        // Log New Incident Data Item Got Created :
+        Logger.logToFile(dictConfig["sLogFolderPath"],"Auto Request Assigner Process","Perform Ticket Assign Operation","TRACE","New incident data item got created successfully.")
+
+        // Log Replying To Customer :
+        Logger.logToFile(dictConfig["sLogFolderPath"],"Auto Request Assigner Process","Perform Ticket Assign Operation","DEBUG","Replying to the customer about the ticket status.")
+        
+        replyEmailBody = Replace(Replace(Replace(dictConfig["sCustomerEmailBodyTemplate"],"{DATE}",Time.Format(Time.Now(),"dd-MM-yyyyTHH:mm:ss")),"{DEPARTMENT_NAME}",dictConfig["sDepartmentName"]),"{TICKET_NUMBER}",IncidentNumber)
+        
+        TranslatedReplyText = GoogleTranslatePlugin.translateText(replyEmailBody, DetectedLanguage)
+
+                replayMail = Outlook.ReplyToMailMessage(currentEmailDetails ,TranslatedReplyText ,"" ,true)
+        
+
+
+Next
+
+// Log Closing Salesforce Application :
+Logger.logToFile(dictConfig["sLogFolderPath"],"Auto Request Assigner Process","Perform Ticket Assign Operation","DEBUG","Logging out of Salesforce application and closing browser.")
+
+#icon("@res:k3nainm3-p757-njg1-9kug-2vuaccqnm0kt.png")
+UiElement.Wait({"wnd":[{"cls":"Chrome_WidgetWin_*","title":"*","app":"uibotBrowser"},{"cls":"Chrome_RenderWidgetHostHWND","title":"Chrome Legacy Window"}],"html":{"tagName":"DIV","attrMap":{"id":"userNavButton","tag":"DIV"},"index":0}},"show",dictConfig["nTimeoutL"],{"bContinueOnError":false,"iDelayAfter":dictConfig["nTimeoutS"],"iDelayBefore":dictConfig["nTimeoutS"]})
+        
+#icon("@res:30vn4vro-uaai-1et2-8e70-oerl2kjdvkk6.png")
+Mouse.Action({"wnd":[{"cls":"Chrome_WidgetWin_*","title":"*","app":"uibotBrowser"},{"cls":"Chrome_RenderWidgetHostHWND","title":"Chrome Legacy Window"}],"html":{"tagName":"DIV","attrMap":{"id":"userNavButton","tag":"DIV"},"index":0}},"left","click",dictConfig["nTimeoutM"],{"bContinueOnError":false,"iDelayAfter":dictConfig["nTimeoutS"],"iDelayBefore":dictConfig["nTimeoutS"],"bSetForeground":true,"sCursorPosition":"Center","iCursorOffsetX":0,"iCursorOffsetY":0,"sKeyModifiers":[],"sSimulate":"simulate"})
+#icon("@res:cbt7n01p-uep5-0uhe-2huq-8pogv10cuuv5.png")
+UiElement.Wait({"wnd":[{"cls":"Chrome_WidgetWin_*","title":"*","app":"uibotBrowser"},{"cls":"Chrome_RenderWidgetHostHWND","title":"Chrome Legacy Window"}],"html":{"tagName":"A","attrMap":{"aaname":"Logout","parentid":"userNav-menuItems","tag":"A"},"index":0}},"show",dictConfig["nTimeoutL"],{"bContinueOnError":false,"iDelayAfter":dictConfig["nTimeoutS"],"iDelayBefore":dictConfig["nTimeoutS"]})
+        
+#icon("@res:5etlipj8-408i-lhj1-c2pb-k6ka2qpii4ig.png")
+Mouse.Action({"wnd":[{"cls":"Chrome_WidgetWin_*","title":"*","app":"uibotBrowser"},{"cls":"Chrome_RenderWidgetHostHWND","title":"Chrome Legacy Window"}],"html":{"tagName":"A","attrMap":{"aaname":"Logout","parentid":"userNav-menuItems","tag":"A"},"index":0}},"left","click",dictConfig["nTimeoutM"],{"bContinueOnError":false,"iDelayAfter":dictConfig["nTimeoutS"],"iDelayBefore":dictConfig["nTimeoutS"],"bSetForeground":true,"sCursorPosition":"Center","iCursorOffsetX":0,"iCursorOffsetY":0,"sKeyModifiers":[],"sSimulate":"simulate"})
+
+Delay(dictConfig["nTimeoutM"])
+
+App.Kill(dictConfig["sBrowserProcessName"])
+
+Delay(dictConfig["nTimeoutM"])
+
+callContext = Replace(dictConfig["sCallContextTemplate"],"{TOTAL_INCIDENTS}",CStr(totalEmails))
+fromNumber = Replace(dictConfig["sTwilioServiceNumber"],"\"","")
+toNumber = Replace(dictConfig["sITAdminContactNumber"],"\"","")
+Logger.logToFile(dictConfig["sLogFolderPath"],"Auto Request Assigner Process","Perform Ticket Assign Operation","DEBUG","Calling IT department head for notifying the total number of incidents.")
+
+TwilioPlugin.make_call(dictConfig["sTwilioSID"], dictConfig["sTwilioAuthKey"], toNumber , fromNumber, callContext)
+
+
+
+Catch errorObject
+
+    // Capturing Error Screenshot Of Current Window :
+    If Not File.Exists(@res"Screenshots")
+
+        File.CreateFolder(@res"Screenshots")
+
+    End If
+
+    sErrorTime = Time.Format(Time.Now(),"ddMMyyyy_HHmmss")    
+
+    ScreenshotPlugin.captureScreenshot(@res"Screenshots"&"\\"&UCase(Replace(errorObject["File"],".task",""))&"_"&sErrorTime&".png", "png")
+
+    sErrorMessage = "An error occured at file : "&errorObject["File"] &" | line no. : " &errorObject["Line"] &" | error description : "&errorObject["Message"]
+    TracePrint sErrorMessage
+
+    // Log Error Object :
+    Logger.logToFile(dictConfig["sLogFolderPath"],"Auto Request Assigner Process","Perform Ticket Assign Operation","CRITICAL",sErrorMessage)
+
+    // Log Unsuccessful Completion Of Block :
+    Logger.logToFile(dictConfig["sLogFolderPath"],"Auto Request Assigner Process","Perform Ticket Assign Operation","INFO","The block got terminated due to exception.")
+
+    bReadEmailsBlockStatus = "False"
+
+Else 
+
+    // Log Successful Completion Of Block :
+    Logger.logToFile(dictConfig["sLogFolderPath"],"Auto Request Assigner Process","Perform Ticket Assign Operation","INFO","The block got executed successfully.")
+
+End Try
+
+

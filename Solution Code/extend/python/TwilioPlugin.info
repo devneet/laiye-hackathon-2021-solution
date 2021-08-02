@@ -1,0 +1,1 @@
+{"Description":"Twilio","MAKE_CALL":{"Description":"This command is used to make a voice call to any given number with a supplied context.","TranslateTemplate":"Calling the number, %3%"}}

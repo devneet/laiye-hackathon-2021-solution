@@ -1,0 +1,1 @@
+{"Description":"Dev Advanced Excel Operations","GETRANGEOFCELLS":{"Description":"This command is used to get the range of the cells occupying the region in the supplied worksheet of the given excel file.","TranslateTemplate":"Range of cells in the worksheet %2% of the excel file, %1%"}}

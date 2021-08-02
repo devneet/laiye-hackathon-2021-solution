@@ -1,0 +1,147 @@
+// ------------------------------------------------------------------------START OF HEAD BLOCK------------------------------------------------------------------------------------
+/* 
+
+   Author : Devneet Mohanty
+   
+   Block Description : This sample block has been created in order to read the configuration excel file.
+   
+   Date Of Creation : 31-07-2021
+   
+   Input Parameter : 
+
+        - sConfigFilePath : The complete file path for configuration file to be read.
+     
+   Output Parameter :
+
+        - dictConfig : The dictionary variable consisting of all configuration parameters.
+        - sErrorMessage : The error message variable returned in case of any error in the block.
+
+*/
+// ------------------------------------------------------------------------END OF HEAD BLOCK--------------------------------------------------------------------------------------
+
+dim sErrorMessage = ""
+dim sRange = ""
+dim dictConfig = {}
+
+// Log Invokation Of Code :
+Logger.logToFile(self.input[1],"Auto Request Assigner Process","Read Configuration","INFO","The block has been invoked.")
+
+// Log Checking If Configuration File Exists :
+Logger.logToFile(self.input[1],"Auto Request Assigner Process","Read Configuration","DEBUG","Checking if configuration file exists.")
+
+// Check If Configuration File Exists :
+dim bConfigFileExists = File.Exists(self.INPUT[0])
+If Not bConfigFileExists
+
+    // Log Configuration File Does Not Exists :
+    Logger.logToFile(self.input[1],"Auto Request Assigner Process","Read Configuration","ERROR","The configuration file does not exists at the following file path : "&self.INPUT[0])
+    
+    sErrorMesage = "Configuration file is not available in the given file path : "&self.INPUT[0]
+
+    // Log Unsuccessful Completion Of Block :
+    Logger.logToFile(self.input[1],"Auto Request Assigner Process","Read Configuration","INFO","The block got terminated due to exception.")
+
+    Return [dictConfig, sErrorMessage]
+    
+End If
+
+Try
+    
+    // Log Getting Range Of Cells In File :
+    Logger.logToFile(self.input[1],"Auto Request Assigner Process","Read Configuration","DEBUG","Getting range of cells used in configuration file.")
+    
+    // Read Configuration File Into Array :
+    sRange = DevneetExcelPlugin.getRangeOfCells(self.INPUT[0], self.INPUT[2])
+
+    // Log Range Of Cells Retrieved From File :
+    Logger.logToFile(self.input[1],"Auto Request Assigner Process","Read Configuration","DEBUG","The range of cells in use retrieved from configuration file is - " & sRange & ".")
+
+    
+    // Get Application Running Status Of Excel :
+    dim bExcelAppStatus = App.GetStatus("excel.exe")
+
+    If bExcelAppStatus
+
+        // Log Killing Excel Application, Since Already Running :
+        Logger.logToFile(self.input[1],"Auto Request Assigner Process","Read Configuration","DEBUG","Killing excel application since it is running already.")
+
+        App.Kill("excel.exe")
+
+    End If
+    
+    
+    // Open & Read Excel :
+
+    // Log Opening Configuration File :
+    Logger.logToFile(self.input[1],"Auto Request Assigner Process","Read Configuration","DEBUG","Opening configuration file at the path : "&self.INPUT[0]&".")
+
+    dim exObj = Excel.OpenExcel(self.INPUT[0],true)
+
+    // Log Reading From Configuration File :
+    Logger.logToFile(self.input[1],"Auto Request Assigner Process","Read Configuration","DEBUG","Reading data from the configuration file in worksheet - " & self.INPUT[2] & " and range - " & sRange & " into array.")
+
+    dim arrData = Excel.ReadRange(exObj,self.INPUT[2],sRange)
+
+    // Log Closing Configuration File :
+    Logger.logToFile(self.input[1],"Auto Request Assigner Process","Read Configuration","DEBUG","Closing the configuration file.")
+
+    Excel.CloseExcel(exObj,false) 
+
+    // Iterate Through Array & Assign Values To Dictionary :
+
+    // Log Iterating Through Array :
+    Logger.logToFile(self.input[1],"Auto Request Assigner Process","Read Configuration","DEBUG","Iterating through the data array and adding values to dictionary.")
+
+    dim recordCount = 0
+    
+    For Each record In arrData
+
+        recordCount = recordCount+1
+
+        If recordCount = 1
+
+            Continue
+            
+        End If
+        
+        dictConfig[record[0]] = record[1]
+
+    Next
+
+    dictConfig["sLogFolderPath"] = self.input[1]
+
+    // Log Values Got Added To The Dictionary :
+    Logger.logToFile(self.input[1],"Auto Request Assigner Process","Read Configuration","DEBUG","The values got added to the dictionary.")
+    Catch errorObject
+
+    // Capturing Error Screenshot Of Current Window :
+    If Not File.Exists(@res"Screenshots")
+
+        File.CreateFolder(@res"Screenshots")
+
+    End If
+
+    sErrorTime = Time.Format(Time.Now(),"ddMMyyyy_HHmmss")    
+
+    ScreenshotPlugin.captureScreenshot(@res"Screenshots"&"\\"&UCase(Replace(errorObject["File"],".task",""))&"_"&sErrorTime&".png", "png")
+
+    sErrorMessage = "An error occured at file : "&errorObject["File"] &" | line no. : " &errorObject["Line"] &" | error description : "&errorObject["Message"]
+    TracePrint sErrorMessage
+
+    // Log Error Object :
+    Logger.logToFile(self.input[1],"Auto Request Assigner Process","Read Configuration","CRITICAL",sErrorMessage)
+
+    // Log Unsuccessful Completion Of Block :
+    Logger.logToFile(self.input[1],"Auto Request Assigner Process","Read Configuration","INFO","The block got terminated due to exception.")
+
+Else 
+
+    // Log Successful Completion Of Block :
+    Logger.logToFile(self.input[1],"Auto Request Assigner Process","Read Configuration","INFO","The block got executed successfully.")
+
+End Try
+
+
+Return [dictConfig, sErrorMessage]
+
+

@@ -1,0 +1,1 @@
+{"Description":"Service Now","CREATE_INCIDENT":{"Description":"This command is responsible for creating an incident with an auto generated ticket number.","TranslateTemplate":"Creating the incident for the instance, %1%"}}

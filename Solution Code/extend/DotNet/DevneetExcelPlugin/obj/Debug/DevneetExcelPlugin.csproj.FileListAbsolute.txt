@@ -1,0 +1,6 @@
+E:\Study Backups\Robotic Process Automation Lessons\Laiye RPA Lessons\Plugin Examples\DevneetExcelPlugin\bin\Debug\DevneetExcelPlugin.dll
+E:\Study Backups\Robotic Process Automation Lessons\Laiye RPA Lessons\Plugin Examples\DevneetExcelPlugin\bin\Debug\DevneetExcelPlugin.pdb
+E:\Study Backups\Robotic Process Automation Lessons\Laiye RPA Lessons\Plugin Examples\DevneetExcelPlugin\obj\Debug\DevneetExcelPlugin.csprojAssemblyReference.cache
+E:\Study Backups\Robotic Process Automation Lessons\Laiye RPA Lessons\Plugin Examples\DevneetExcelPlugin\obj\Debug\DevneetExcelPlugin.csproj.CoreCompileInputs.cache
+E:\Study Backups\Robotic Process Automation Lessons\Laiye RPA Lessons\Plugin Examples\DevneetExcelPlugin\obj\Debug\DevneetExcelPlugin.dll
+E:\Study Backups\Robotic Process Automation Lessons\Laiye RPA Lessons\Plugin Examples\DevneetExcelPlugin\obj\Debug\DevneetExcelPlugin.pdb

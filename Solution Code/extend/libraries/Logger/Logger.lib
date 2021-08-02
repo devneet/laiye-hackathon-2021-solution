@@ -1,0 +1,38 @@
+/*
+
+Author : Devneet Mohanty
+Date Of Creation : 25-05-2021
+Description : Library for incorporating custom loging.
+
+*/
+
+Function logToFile(sLogFolderPath,sProcessName,sBlockName,sLogLevel,sLogMessage)
+
+    If sLogFolderPath = "" Or sProcessName = "" Or sBlockName = "" Or sLogLevel = "" Or sLogMessage = ""
+        
+        Throw "Mandatory Parameters are not supplied for the ologging operation."
+
+    End If
+
+    dim dTime = Time.Date()
+
+    dim sTime = Time.Format(dTime,"ddMMyyyy_HHmmss")
+
+    dim sLogFilePath = sLogFolderPath&"\\"&sProcessName&"_log_"&sTime&".csv"
+
+    dim bFileExists = File.Exists(sLogFilePath)
+
+    If Not bFileExists
+
+        File.Create(sLogFilePath)
+        File.Append(sLogFilePath,"Time Stamp" & "," & "Process Name" & "," & "Block Name" & "," & "Log Level" & "," & "Log Message" & '\n',"utf8")
+
+    End If
+
+        dim tCurrentTime = Time.Now()
+        dim sCurrentTime = Time.Format(tCurrentTime,"dd-MM-yyyy T HH:mm:ss")
+
+        File.Append(sLogFilePath,tCurrentTime & "," & sProcessName & "," & sBlockName & "," & sLogLevel & "," & sLogMessage & '\n',"utf8")
+
+End Function
+

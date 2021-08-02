@@ -1,0 +1,92 @@
+// ------------------------------------------------------------------------START OF HEAD BLOCK------------------------------------------------------------------------------------
+/* 
+
+   Author : Devneet Mohanty
+   
+   Block Description : This sample block has been created in order to read emails from the defined folder and mail account in Outlook and add the mail details to array.
+   
+   Date Of Creation : 01-08-2021
+   
+   Input Parameter : 
+
+        - dictConfig : The dictionary variable consisting of all configuration parameters.
+     
+   Output Parameter :
+
+        - sErrorMessage : The error message variable returned in case of any error in the block.
+
+*/
+// ------------------------------------------------------------------------END OF HEAD BLOCK--------------------------------------------------------------------------------------
+
+Try
+
+    dim sErrorMessage = ""
+    dim arrMailDetails = []
+    dim dictConfig = self.input
+    dim totalEmails = 0
+
+    // Log Invokation Of Code :
+    Logger.logToFile(dictConfig["sLogFolderPath"],"Auto Request Assigner Process","Read Emails From Outlook","INFO","The block has been invoked.")
+
+    // Log Reading Emails From Outlook :
+    Logger.logToFile(dictConfig["sLogFolderPath"],"Auto Request Assigner Process","Read Emails From Outlook","INFO","Reading emails from the mail folder - " & dictConfig["sMailFolder"] & " and the account - " & dictConfig["sMailAccount"] &".")
+
+    arrOutlookEmails = Outlook.GetMailMessages(dictConfig["sMailAccount"],dictConfig["sMailFolder"],"",false,true,dictConfig["nMailCount"])
+
+    For Each currentEmailDetails In arrOutlookEmails
+        
+        arrMailDetails = push(arrMailDetails,currentEmailDetails)
+        totalEmails = totalEmails+1
+        
+
+    Next
+
+     // Log Reading Emails From Outlook :
+    Logger.logToFile(dictConfig["sLogFolderPath"],"Auto Request Assigner Process","Read Emails From Outlook","INFO","Total emails fetched from Outlook are : " & CStr(totalEmails) &".")
+
+    If totalEmails = 0
+
+        Throw "No emails found in the given mail folder."
+
+    End If
+
+    bReadEmailsBlockStatus = "True"
+    
+    
+   
+
+Catch errorObject
+
+    // Capturing Error Screenshot Of Current Window :
+    If Not File.Exists(@res"Screenshots")
+
+        File.CreateFolder(@res"Screenshots")
+
+    End If
+
+    sErrorTime = Time.Format(Time.Now(),"ddMMyyyy_HHmmss")    
+
+    ScreenshotPlugin.captureScreenshot(@res"Screenshots"&"\\"&UCase(Replace(errorObject["File"],".task",""))&"_"&sErrorTime&".png", "png")
+
+    sErrorMessage = "An error occured at file : "&errorObject["File"] &" | line no. : " &errorObject["Line"] &" | error description : "&errorObject["Message"]
+    TracePrint sErrorMessage
+
+    // Log Error Object :
+    Logger.logToFile(dictConfig["sLogFolderPath"],"Auto Request Assigner Process","Read Emails From Outlook","CRITICAL",sErrorMessage)
+
+    // Log Unsuccessful Completion Of Block :
+    Logger.logToFile(dictConfig["sLogFolderPath"],"Auto Request Assigner Process","Read Emails From Outlook","INFO","The block got terminated due to exception.")
+
+    bReadEmailsBlockStatus = "False"
+
+Else 
+
+    // Log Successful Completion Of Block :
+    Logger.logToFile(dictConfig["sLogFolderPath"],"Auto Request Assigner Process","Read Emails From Outlook","INFO","The block got executed successfully.")
+
+End Try
+
+arrResults = [totalEmails,bReadEmailsBlockStatus,arrMailDetails]
+Return arrResults
+
+
